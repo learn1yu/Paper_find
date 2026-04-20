@@ -343,6 +343,7 @@ def run(
     retry_wait: int,
     proxy_mode: str,
     max_scan_results: int,
+    year: Optional[int],
 ) -> int:
     base_dir = Path(__file__).resolve().parent
     dirs = ensure_dirs(base_dir)
@@ -362,6 +363,7 @@ def run(
     header = (
         f"# Search Topic: {topic}\n\n"
         f"- Run Time: {timestamp}\n"
+        f"- Year Filter: {year if year is not None else 'None'}\n"
         f"- Target New Papers: {max_results}\n"
         f"- Max Scan Results: {max_scan_results}\n\n"
         f"---\n\n"
@@ -369,6 +371,7 @@ def run(
     header_zh = (
         f"# 检索主题: {topic}\n\n"
         f"- 运行时间: {timestamp}\n"
+        f"- 年份筛选: {year if year is not None else '无'}\n"
         f"- 目标新增论文数: {max_results}\n"
         f"- 最大扫描结果数: {max_scan_results}\n\n"
         f"---\n\n"
@@ -391,6 +394,7 @@ def run(
     log(f"[INFO] Chinese output file: {out_file_zh}")
     log(f"[INFO] Cached papers for this topic: {len(seen_keys)}")
     log(f"[INFO] Retry: {retries}, Retry wait: {retry_wait}s, Proxy mode: {proxy_mode}")
+    log(f"[INFO] Year filter: {year if year is not None else 'none'}")
     log(f"[INFO] Target new papers: {max_results}, Max scan results: {max_scan_results}")
 
     scanned = 0
@@ -427,6 +431,18 @@ def run(
             continue
 
         scanned += 1
+
+        if year is not None:
+            bib = pub.get("bib", {}) if isinstance(pub, dict) else {}
+            pub_year = str(bib.get("pub_year") or "").strip()
+            if pub_year != str(year):
+                skipped += 1
+                log(
+                    f"[SKIP] Year mismatch ({pub_year or 'N/A'}) "
+                    f"(scanned {scanned}, target new {new_added}/{max_results})"
+                )
+                continue
+
         key = build_paper_key(pub)
 
         if key in seen_keys:
@@ -470,6 +486,7 @@ def run(
 
     summary = (
         f"## Summary\n\n"
+        f"- Year filter: {year if year is not None else 'None'}\n"
         f"- Target new papers: {max_results}\n"
         f"- Scanned results: {scanned}\n"
         f"- New papers added: {new_added}\n"
@@ -477,6 +494,7 @@ def run(
     )
     summary_zh = (
         f"## 总结\n\n"
+        f"- 年份筛选: {year if year is not None else '无'}\n"
         f"- 目标新增论文数: {max_results}\n"
         f"- 扫描结果数: {scanned}\n"
         f"- 新增论文数: {new_added}\n"
@@ -501,6 +519,12 @@ def parse_args() -> argparse.Namespace:
         description="Search papers from Google Scholar and organize them in markdown."
     )
     parser.add_argument("--topic", required=True, help="English search topic")
+    parser.add_argument(
+        "--year",
+        type=int,
+        default=None,
+        help="Only keep papers from this publication year, e.g. 2024",
+    )
     parser.add_argument(
         "--max-results",
         type=int,
@@ -536,6 +560,9 @@ def parse_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     args = parse_args()
+    if args.year is not None and not (1900 <= args.year <= datetime.now().year + 1):
+        log(f"[ERROR] --year must be between 1900 and {datetime.now().year + 1}")
+        sys.exit(2)
     if args.max_results <= 0:
         log("[ERROR] --max-results must be > 0")
         sys.exit(2)
@@ -557,5 +584,6 @@ if __name__ == "__main__":
             args.retry_wait,
             args.proxy_mode,
             args.max_scan_results,
+            args.year,
         )
     )

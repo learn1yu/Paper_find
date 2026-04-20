@@ -32,6 +32,12 @@ pip install -r requirements.txt
 python main.py --topic "large language model" --max-results 20
 ```
 
+按年份筛选：
+
+```bash
+python main.py --topic "pangenome" --year 2024 --max-results 10
+```
+
 遇到 Google Scholar 拉取失败时可以这样运行：
 
 ```bash
@@ -41,6 +47,7 @@ python main.py --topic "pangenome" --max-results 5 --retries 5 --retry-wait 8 --
 参数：
 
 - `--topic`: 英文主题（必填）
+- `--year`: 可选，按发表年份筛选（例如 `2024`）
 - `--max-results`: 目标新增论文数（缓存跳过不计入），默认 `20`
 - `--retries`: 启动 Google Scholar 检索失败时重试次数，默认 `3`
 - `--retry-wait`: 每次重试等待秒数，默认 `5`
@@ -68,5 +75,3 @@ python main.py --topic "pangenome" --max-results 5 --retries 5 --retry-wait 8 --
 - `outputs/<YYYYMMDD_HHMMSS>_<topic>/papers.md`
 - `outputs/<YYYYMMDD_HHMMSS>_<topic>/papers_zh.md`
 - `cache/<topic>.json`
-
-<!-- python3 main.py --topic pangenome --proxy-mode free --max-results 30 -->
